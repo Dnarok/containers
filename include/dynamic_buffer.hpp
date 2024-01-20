@@ -58,7 +58,7 @@ constexpr auto swap(dynamic_buffer<T, A>& left, dynamic_buffer<T, A>& right) noe
     swap(left.size, right.size);
     swap(left.data, right.data);
 
-    if constexpr (dynamic_buffer<T, A>::traits::propagate_on_container_swap())
+    if constexpr (dynamic_buffer<T, A>::traits::propagate_on_container_swap::value)
     {
         swap(left.allocator, right.allocator);
     }
