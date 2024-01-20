@@ -1,9 +1,6 @@
-[![msvc and gcc](https://github.com/Dnarok/cpp_baseline/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/Dnarok/cpp_baseline/actions/workflows/cmake-multi-platform.yml)
+[![msvc and gcc](https://github.com/Dnarok/containers/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/Dnarok/containers/actions/workflows/cmake-multi-platform.yml)
 
-Baseline for future C++ projects.
+A library of containers for different uses.
 
-* CMake
-* C++23
-* spdlog, fmt, and my contract library
-* gtest through CTest
-* CI/CD through github Actions
+* dynamic_buffer - runtime sized, heap allocated, only changes size when explicitly told to do so.
+* static_buffer - compile-time sized, heap allocated, cannot change sizes.
