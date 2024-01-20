@@ -37,7 +37,6 @@ struct dynamic_buffer
     constexpr auto operator =(dynamic_buffer other) noexcept -> dynamic_buffer&;
 
     constexpr dynamic_buffer(std::initializer_list<value_type> init);
-    constexpr dynamic_buffer(size_type size);
     template <typename... Args>
     constexpr dynamic_buffer(size_type size, Args&&... arguments);
     constexpr dynamic_buffer(uninitialized_t, size_type size);
@@ -46,7 +45,9 @@ struct dynamic_buffer
     constexpr auto operator [](size_type index) const & -> const value_type&;
     constexpr auto operator [](size_type index)      && -> value_type&&;
 
-    constexpr auto resize(size_type new_size) -> void;
+    template <typename... Args>
+    constexpr auto resize(size_type size, Args&&... arguments) -> void;
+    constexpr auto resize(uninitialized_t, size_type size) -> void;
 };
 
 template <typename T, typename A>
@@ -126,18 +127,6 @@ constexpr dynamic_buffer<T, A>::dynamic_buffer(std::initializer_list<value_type>
 };
 
 template <typename T, typename A>
-constexpr dynamic_buffer<T, A>::dynamic_buffer(size_type size) :
-    size{ size },
-    allocator{},
-    data{ traits::allocate(allocator, size) }
-{
-    for (size_type i = 0; i < size; ++i)
-    {
-        traits::construct(allocator, data + i);
-    }
-};
-
-template <typename T, typename A>
 template <typename... Args>
 constexpr dynamic_buffer<T, A>::dynamic_buffer(size_type size, Args&&... arguments) :
     size{ size },
@@ -146,7 +135,7 @@ constexpr dynamic_buffer<T, A>::dynamic_buffer(size_type size, Args&&... argumen
 {
     for (size_type i = 0; i < size; ++i)
     {
-        traits::construct(allocator, data + i, arguments...);
+        traits::construct(allocator, data + i, std::forward<Args>(arguments)...);
     }
 };
 
@@ -229,10 +218,42 @@ constexpr auto operator <=>(const dynamic_buffer<T, A>& left, const dynamic_buff
 };
 
 template <typename T, typename A>
-constexpr auto dynamic_buffer<T, A>::resize(size_type new_size) -> void
+template <typename... Args>
+constexpr auto dynamic_buffer<T, A>::resize(size_type new_size, Args&&... arguments) -> void
 {
     if (size == new_size)
     {
         return;
     }
+
+    const size_type limit = std::min(size, new_size);
+    dynamic_buffer new_buffer(uninitialized, new_size);
+    for (size_type i = 0; i < limit; ++i)
+    {
+        traits::construct(new_buffer.allocator, new_buffer.data + i, *(data + i));
+    }
+    for (size_type i = limit; i < new_size; ++i)
+    {
+        traits::construct(new_buffer.allocator, new_buffer.data + i, std::forward<Args>(arguments)...);
+    }
+
+    swap(*this, new_buffer);
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::resize(uninitialized_t, size_type new_size) -> void
+{
+    if (size == new_size)
+    {
+        return;
+    }
+
+    const size_type limit = std::min(size, new_size);
+    dynamic_buffer new_buffer(uninitialized, new_size);
+    for (size_type i = 0; i < limit; ++i)
+    {
+        traits::construct(new_buffer.allocator, new_buffer.data + i, *(data + i));
+    }
+
+    swap(*this, new_buffer);
 };

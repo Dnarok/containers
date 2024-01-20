@@ -191,3 +191,53 @@ TEST(DynamicBuffer, Spaceship)
     EXPECT_EQ(buffer1 <=> buffer6, std::partial_ordering::greater);
     EXPECT_EQ(buffer1 <=> buffer7, std::partial_ordering::unordered);
 };
+
+TEST(DynamicBuffer, Resize)
+{
+    static_assert(requires (dynamic_buffer<int>& A) { A.resize(std::size_t{}); });
+    dynamic_buffer<int> buffer1 = { 0, 1, 2, 3, 4, 5 };
+    dynamic_buffer<int> buffer2{ buffer1 };
+    int* buffer2_data = buffer2.data;
+    dynamic_buffer<int> buffer3 = { 0, 1, 2, 3, 4, 5, 0, 0, 0 };
+    
+    buffer2.resize(9);
+    EXPECT_EQ(buffer2.size, 9);
+    EXPECT_NE(buffer2.data, buffer2_data);
+    EXPECT_NE(buffer2, buffer1);
+    EXPECT_EQ(buffer2, buffer3);
+};
+
+TEST(DynamicBuffer, ResizeWithArguments)
+{
+    static_assert(requires (dynamic_buffer<int>& A) { A.resize(std::size_t{}, int{});});
+    dynamic_buffer<int> buffer1 = { 0, 1, 2, 3, 4, 5 };
+    dynamic_buffer<int> buffer2{ buffer1 };
+    int* buffer2_data = buffer2.data;
+    dynamic_buffer<int> buffer3 = { 0, 1, 2, 3, 4, 5, 1000, 1000, 1000 };
+
+    buffer2.resize(9, 1000);
+    EXPECT_EQ(buffer2.size, 9);
+    EXPECT_NE(buffer2.data, buffer2_data);
+    EXPECT_NE(buffer2, buffer1);
+    EXPECT_EQ(buffer2, buffer3);
+};
+
+TEST(DynamicBuffer, ResizeUninitialized)
+{
+    static_assert(requires (dynamic_buffer<int>& A) { A.resize(uninitialized_t{}, std::size_t{}); });
+    dynamic_buffer<int> buffer1 = { 0, 1, 2, 3, 4, 5 };
+    dynamic_buffer<int> buffer2 = { buffer1 };
+    int* buffer2_data = buffer2.data;
+    std::size_t buffer2_size = buffer2.size;
+
+    buffer2.resize(uninitialized, 9);
+    EXPECT_EQ(buffer2.size, 9);
+    EXPECT_NE(buffer2.data, buffer2_data);
+
+    for (std::size_t i = 0; i < buffer2_size; ++i)
+    {
+        EXPECT_EQ(buffer2[i], i);
+    }
+
+    // no real way to check "are the last three uninitialized memory."
+};
