@@ -4,7 +4,7 @@ project(tests
 )
 
 add_executable(default_test
-	default_test.cpp
+	dynamic_buffer.cpp
 )
 target_link_libraries(default_test
 	PRIVATE ${MY_PROJECT_NAME}
