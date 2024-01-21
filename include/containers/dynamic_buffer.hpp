@@ -52,12 +52,12 @@ struct dynamic_buffer
 
     struct iterator
     {
-        using value_type = value_type;
+        using value_type = T;
         using reference_type = value_type&;
-        using pointer = pointer;
-        using size_type = size_type;
+        using pointer = value_type*;
+        using size_type = std::size_t;
         using difference_type = std::ptrdiff_t;
-        using iterator_concept = std::random_access_iterator_tag;
+        using iterator_concept = std::contiguous_iterator_tag;
         
         pointer data = nullptr;
 
@@ -94,6 +94,7 @@ struct dynamic_buffer
         constexpr auto operator -=(difference_type offset) -> iterator&;
         constexpr auto operator -(difference_type offset) const -> iterator;
         constexpr auto operator [](difference_type offset) const -> reference_type;
+        constexpr auto operator ->() const -> pointer;
     };
 };
 
@@ -394,5 +395,11 @@ constexpr auto dynamic_buffer<T, A>::iterator::operator -(difference_type offset
 template <typename T, typename A>
 constexpr auto dynamic_buffer<T, A>::iterator::operator [](difference_type offset) const -> reference_type
 {
-    return *(data + offset);
+    return data[offset];
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::iterator::operator ->() const -> pointer
+{
+    return data;
 };

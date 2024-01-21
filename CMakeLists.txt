@@ -14,7 +14,7 @@ option(BUILD_TESTS "Build the tests" ON)
 add_subdirectory(external)
 
 add_library(${MY_PROJECT_NAME} INTERFACE
-    include/dynamic_buffer.hpp
+    include/containers/dynamic_buffer.hpp
 )
 
 target_include_directories(${MY_PROJECT_NAME}

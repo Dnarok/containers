@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "dynamic_buffer.hpp"
+#include "containers/dynamic_buffer.hpp"
 
 TEST(DynamicBuffer, DefaultConstruction)
 {
@@ -365,4 +365,59 @@ TEST(DynamicBufferIterator, RandomAccessIterator)
     // i - j -> difference_type
     EXPECT_EQ(iterator1 - iterator2, -4);
     EXPECT_EQ(iterator2 - iterator1, 4);
+
+    // i += n -> iterator&
+    dynamic_buffer_iterator<int> iterator3{ buffer.data };
+    dynamic_buffer_iterator<int>& iterator3_reference = iterator3 += 3;
+    EXPECT_EQ(*iterator3, 3);
+    EXPECT_EQ(*iterator3_reference, *iterator3);
+    iterator3 += -3;
+    EXPECT_EQ(*iterator3, 0);
+
+    // i + n -> iterator
+    dynamic_buffer_iterator<int> iterator4{ buffer.data };
+    EXPECT_EQ(*(iterator4 + 3), 3);
+    EXPECT_EQ(*iterator4, 0);
+    EXPECT_EQ(*(3 + iterator4), *(iterator4 + 3));
+
+    // i -= n -> iterator&
+    dynamic_buffer_iterator<int> iterator5{ buffer.data + 3};
+    dynamic_buffer_iterator<int>& iterator5_reference = iterator5 -= 3;
+    EXPECT_EQ(*iterator5, 0);
+    EXPECT_EQ(*iterator5_reference, *iterator5);
+    iterator5 -= -3;
+    EXPECT_EQ(*iterator5, 3);
+
+    // i - n -> iterator
+    dynamic_buffer_iterator<int> iterator6{ buffer.data + 5 };
+    EXPECT_EQ(*(iterator6 - 3), 2);
+    EXPECT_EQ(*iterator6, 5);
+
+    // i[n] -> reference
+    dynamic_buffer_iterator<int> iterator7{ buffer.data };
+    for (std::size_t i = 0; i < buffer.size; ++i)
+    {
+        EXPECT_EQ(iterator7[i], i);
+    }
+    iterator7[0] = 3;
+    EXPECT_EQ(buffer[0], 3);
+    iterator7[2] = 500;
+    EXPECT_EQ(buffer[2], 500);
+};
+
+TEST(DynamicBufferIterator, ContiguousIterator)
+{
+    struct value
+    {
+        int x;
+    };
+
+    static_assert(std::contiguous_iterator<dynamic_buffer_iterator<value>>);
+    dynamic_buffer<value> buffer{ value{ 0 }, value{ 1 }, value{ 2 }, value{ 3 } };
+    dynamic_buffer_iterator<value> iterator{ buffer.data };
+    EXPECT_EQ(iterator->x, 0);
+    EXPECT_EQ((iterator + 2)->x, 2);
+    ++iterator;
+    EXPECT_EQ(iterator->x, 1);
+    EXPECT_EQ((iterator + 2)->x, 3);
 };
