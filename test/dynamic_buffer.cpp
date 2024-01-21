@@ -261,22 +261,108 @@ TEST(DynamicBuffer, ClaimPointer)
     }
 };
 
-TEST(DynamicBufferIterator, WeaklyIncrementable)
+TEST(DynamicBufferIterator, InputIterator)
 {
-    static_assert(std::weakly_incrementable<dynamic_buffer_iterator<int>>);
+    static_assert(std::input_iterator<dynamic_buffer_iterator<int>>);
     dynamic_buffer<int> buffer = { 0, 1, 2, 3, 4, 5 };
     dynamic_buffer_iterator<int> iterator1{ buffer.data };
 
-    // std::movable
-    //    std::move_constructible
+    // std::weakly_incrementable
+    //     std::movable
+    //         std::move_constructible
     dynamic_buffer_iterator<int> iterator2{ std::move(iterator1) };
     EXPECT_EQ(iterator2.data, buffer.data);
-    //    std::assignable_from<T>
+
+    //         std::assignable_from<T>
     dynamic_buffer_iterator<int> iterator3{};
     iterator3 = dynamic_buffer_iterator<int>{ buffer.data };
     EXPECT_EQ(iterator3.data, buffer.data);
-    //    std::swappable
+
+    //         std::swappable
     dynamic_buffer_iterator<int> iterator4{ buffer.data + 1 };
     swap(iterator3, iterator4);
     EXPECT_EQ(iterator3.data, buffer.data + 1);
+
+    //     ++i -> iterator&
+    dynamic_buffer_iterator<int> iterator5{ buffer.data };
+    int* iterator5_data = iterator5.data;
+    dynamic_buffer_iterator<int>& iterator5_reference = ++iterator5;
+    ++iterator5_reference;
+    EXPECT_EQ(iterator5.data, iterator5_data + 2);
+    EXPECT_EQ(std::addressof(iterator5), std::addressof(iterator5_reference));
+
+    //     i++ -> iterator
+    dynamic_buffer_iterator<int> iterator6{ buffer.data };
+    EXPECT_EQ((iterator6++).data, buffer.data);
+    EXPECT_EQ(iterator6.data, buffer.data + 1);
+
+    // *i -> reference
+    dynamic_buffer_iterator<int> iterator7{ buffer.data };
+    int& iterator7_value = *iterator7;
+    EXPECT_EQ(iterator7_value, 0);
+    iterator7_value = 10;
+    EXPECT_EQ(buffer[0], 10);
+    ++iterator7;
+    EXPECT_EQ(*iterator7, 1);
+    *iterator7 = 11;
+    EXPECT_EQ(buffer[1], 11);
+};
+
+TEST(DynamicBufferIterator, ForwardIterator)
+{
+    static_assert(std::forward_iterator<dynamic_buffer_iterator<int>>);
+    dynamic_buffer<int> buffer = { 0, 1, 2, 3, 4, 5, 6 };
+    dynamic_buffer_iterator<int> iterator1{ buffer.data };
+
+    // std::regular
+    //     std::copyable
+    //         std::copy_constructible
+    dynamic_buffer_iterator<int> iterator2{ iterator1 };
+    EXPECT_EQ(iterator2.data, iterator1.data);
+
+    //         std::default_initializable
+    //         std::assignable_from<const T&>
+    dynamic_buffer_iterator<int> iterator3{};
+    EXPECT_EQ(iterator3.data, nullptr);
+    iterator3 = iterator2;
+    EXPECT_EQ(iterator3.data, iterator2.data);
+
+    //     std::equality_comparable
+    EXPECT_EQ(iterator3, iterator2);
+};
+
+TEST(DynamicBufferIterator, BidirectionalIterator)
+{
+    static_assert(std::bidirectional_iterator<dynamic_buffer_iterator<int>>);
+    dynamic_buffer<int> buffer = { 0, 1, 2, 3, 4, 5 };
+
+    // --i -> iterator&
+    dynamic_buffer_iterator<int> iterator1{ buffer.data + 3 };
+    int* iterator1_data = iterator1.data;
+    dynamic_buffer_iterator<int>& iterator1_reference = --iterator1;
+    --iterator1_reference;
+    EXPECT_EQ(iterator1.data, iterator1_data - 2);
+    EXPECT_EQ(std::addressof(iterator1), std::addressof(iterator1_reference));
+    
+    // i-- -> iterator
+    dynamic_buffer_iterator<int> iterator2{ buffer.data + 1 };
+    EXPECT_EQ((iterator2--).data, buffer.data + 1);
+    EXPECT_EQ(iterator2.data, buffer.data);
+};
+
+TEST(DynamicBufferIterator, RandomAccessIterator)
+{
+    static_assert(std::random_access_iterator<dynamic_buffer_iterator<int>>);
+    dynamic_buffer<int> buffer = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+    // i <=> j -> strong_ordering
+    dynamic_buffer_iterator<int> iterator1{ buffer.data + 2 };
+    dynamic_buffer_iterator<int> iterator2{ buffer.data + 6 };
+    EXPECT_EQ(iterator1 <=> iterator2, std::strong_ordering::less);
+    EXPECT_EQ(iterator2 <=> iterator1, std::strong_ordering::greater);
+    EXPECT_EQ(iterator1 <=> dynamic_buffer_iterator<int>{}, std::strong_ordering::greater);
+
+    // i - j -> difference_type
+    EXPECT_EQ(iterator1 - iterator2, -4);
+    EXPECT_EQ(iterator2 - iterator1, 4);
 };
