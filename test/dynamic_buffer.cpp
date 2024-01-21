@@ -194,17 +194,21 @@ TEST(DynamicBuffer, Spaceship)
 
 TEST(DynamicBuffer, Resize)
 {
-    static_assert(requires (dynamic_buffer<int>& A) { A.resize(std::size_t{}); });
+    static_assert(requires (dynamic_buffer<int>&A) { A.resize(std::size_t{}); });
     dynamic_buffer<int> buffer1 = { 0, 1, 2, 3, 4, 5 };
     dynamic_buffer<int> buffer2{ buffer1 };
     int* buffer2_data = buffer2.data;
     dynamic_buffer<int> buffer3 = { 0, 1, 2, 3, 4, 5, 0, 0, 0 };
-    
+
     buffer2.resize(9);
     EXPECT_EQ(buffer2.size, 9);
     EXPECT_NE(buffer2.data, buffer2_data);
     EXPECT_NE(buffer2, buffer1);
     EXPECT_EQ(buffer2, buffer3);
+
+    dynamic_buffer<int> buffer4 = { 0, 1, 2, 3 };
+    buffer4.resize(0);
+    EXPECT_EQ(buffer4, dynamic_buffer<int>{});
 };
 
 TEST(DynamicBuffer, ResizeWithArguments)
@@ -240,4 +244,39 @@ TEST(DynamicBuffer, ResizeUninitialized)
     }
 
     // no real way to check "are the last three uninitialized memory."
+};
+
+TEST(DynamicBuffer, ClaimPointer)
+{
+    static_assert(std::is_constructible_v<dynamic_buffer<int>, int*, std::size_t>);
+    int* pointer = new int[3] { 123, 124, 125 };
+    dynamic_buffer<int> buffer{ pointer, 3 };
+
+    EXPECT_EQ(buffer.size, 3);
+    EXPECT_EQ(buffer.data, pointer);
+    
+    for (std::size_t i = 0; i < buffer.size; ++i)
+    {
+        EXPECT_EQ(buffer[i], 123 + i);
+    }
+};
+
+TEST(DynamicBufferIterator, WeaklyIncrementable)
+{
+    static_assert(std::weakly_incrementable<dynamic_buffer_iterator<int>>);
+    dynamic_buffer<int> buffer = { 0, 1, 2, 3, 4, 5 };
+    dynamic_buffer_iterator<int> iterator1{ buffer.data };
+
+    // std::movable
+    //    std::move_constructible
+    dynamic_buffer_iterator<int> iterator2{ std::move(iterator1) };
+    EXPECT_EQ(iterator2.data, buffer.data);
+    //    std::assignable_from<T>
+    dynamic_buffer_iterator<int> iterator3{};
+    iterator3 = dynamic_buffer_iterator<int>{ buffer.data };
+    EXPECT_EQ(iterator3.data, buffer.data);
+    //    std::swappable
+    dynamic_buffer_iterator<int> iterator4{ buffer.data + 1 };
+    swap(iterator3, iterator4);
+    EXPECT_EQ(iterator3.data, buffer.data + 1);
 };

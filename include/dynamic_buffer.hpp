@@ -40,6 +40,7 @@ struct dynamic_buffer
     template <typename... Args>
     constexpr dynamic_buffer(size_type size, Args&&... arguments);
     constexpr dynamic_buffer(uninitialized_t, size_type size);
+    constexpr dynamic_buffer(pointer data, size_type size);
 
     constexpr auto operator [](size_type index)	      & -> value_type&;
     constexpr auto operator [](size_type index) const & -> const value_type&;
@@ -48,6 +49,28 @@ struct dynamic_buffer
     template <typename... Args>
     constexpr auto resize(size_type size, Args&&... arguments) -> void;
     constexpr auto resize(uninitialized_t, size_type size) -> void;
+
+    struct iterator
+    {
+        using value_type = value_type;
+        using pointer = pointer;
+        using size_type = size_type;
+        using difference_type = std::ptrdiff_t;
+        
+        pointer data = nullptr;
+
+        constexpr iterator() = default;
+        constexpr iterator(const iterator&) = default;
+        constexpr iterator(iterator&&) = default;
+        constexpr ~iterator() = default;
+        constexpr auto operator =(const iterator&) -> iterator& = default;
+        constexpr auto operator =(iterator&&) noexcept -> iterator& = default;
+
+        constexpr iterator(pointer data);
+
+        constexpr auto operator ++() -> iterator&;
+        constexpr auto operator ++(int) -> iterator;
+    };
 };
 
 template <typename T, typename A>
@@ -145,6 +168,16 @@ constexpr dynamic_buffer<T, A>::dynamic_buffer(uninitialized_t, size_type size) 
     allocator{},
     data{ traits::allocate(allocator, size) }
 {};
+
+template <typename T, typename A>
+constexpr dynamic_buffer<T, A>::dynamic_buffer(pointer data, size_type size) :
+    size{ size },
+    allocator{},
+    data{ data }
+{
+    contract;
+        post(data ? size > 0 : size == 0);
+};
 
 template <typename T, typename A>
 constexpr auto dynamic_buffer<T, A>::operator [](size_type index) & -> value_type&
@@ -256,4 +289,35 @@ constexpr auto dynamic_buffer<T, A>::resize(uninitialized_t, size_type new_size)
     }
 
     swap(*this, new_buffer);
+};
+
+template <typename T, typename A = std::allocator<T>>
+using dynamic_buffer_iterator = typename dynamic_buffer<T, A>::iterator;
+
+template <typename T, typename A>
+constexpr auto swap(dynamic_buffer_iterator<T, A>& left, dynamic_buffer_iterator<T, A>& right) noexcept -> void
+{
+    using std::swap;
+
+    swap(left.data, right.data);
+};
+
+template <typename T, typename A>
+constexpr dynamic_buffer<T, A>::iterator::iterator(pointer data) :
+    data{ data }
+{};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::iterator::operator ++() -> iterator&
+{
+    ++data;
+    return *this;
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::iterator::operator ++(int) -> iterator
+{
+    iterator out{ *this };
+    ++data;
+    return out;
 };
