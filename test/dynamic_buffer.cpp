@@ -421,3 +421,211 @@ TEST(DynamicBufferIterator, ContiguousIterator)
     EXPECT_EQ(iterator->x, 1);
     EXPECT_EQ((iterator + 2)->x, 3);
 };
+
+TEST(DynamicBufferConstIterator, InputIterator)
+{
+    static_assert(std::input_iterator<dynamic_buffer_const_iterator<int>>);
+    dynamic_buffer<int> buffer = { 0, 1, 2, 3, 4, 5 };
+    dynamic_buffer_const_iterator<int> const_iterator1{ buffer.data };
+
+    // std::weakly_incrementable
+    //     std::movable
+    //         std::move_constructible
+    dynamic_buffer_const_iterator<int> const_iterator2{ std::move(const_iterator1) };
+    EXPECT_EQ(const_iterator2.data, buffer.data);
+
+    //         std::assignable_from<T>
+    dynamic_buffer_const_iterator<int> const_iterator3{};
+    const_iterator3 = dynamic_buffer_const_iterator<int>{ buffer.data };
+    EXPECT_EQ(const_iterator3.data, buffer.data);
+
+    //         std::swappable
+    dynamic_buffer_const_iterator<int> const_iterator4{ buffer.data + 1 };
+    swap(const_iterator3, const_iterator4);
+    EXPECT_EQ(const_iterator3.data, buffer.data + 1);
+
+    //     ++i -> const_iterator&
+    dynamic_buffer_const_iterator<int> const_iterator5{ buffer.data };
+    const int* const_iterator5_data = const_iterator5.data;
+    dynamic_buffer_const_iterator<int>& const_iterator5_reference = ++const_iterator5;
+    ++const_iterator5_reference;
+    EXPECT_EQ(const_iterator5.data, const_iterator5_data + 2);
+    EXPECT_EQ(std::addressof(const_iterator5), std::addressof(const_iterator5_reference));
+
+    //     i++ -> const_iterator
+    dynamic_buffer_const_iterator<int> const_iterator6{ buffer.data };
+    EXPECT_EQ((const_iterator6++).data, buffer.data);
+    EXPECT_EQ(const_iterator6.data, buffer.data + 1);
+
+    // *i -> reference
+    dynamic_buffer_const_iterator<int> const_iterator7{ buffer.data };
+    const int& const_iterator7_value = *const_iterator7;
+    EXPECT_EQ(const_iterator7_value, 0);
+    ++const_iterator7;
+    EXPECT_EQ(*const_iterator7, 1);
+};
+
+TEST(DynamicBufferConstIterator, ForwardIterator)
+{
+    static_assert(std::forward_iterator<dynamic_buffer_const_iterator<int>>);
+    dynamic_buffer<int> buffer = { 0, 1, 2, 3, 4, 5, 6 };
+    dynamic_buffer_const_iterator<int> const_iterator1{ buffer.data };
+
+    // std::regular
+    //     std::copyable
+    //         std::copy_constructible
+    dynamic_buffer_const_iterator<int> const_iterator2{ const_iterator1 };
+    EXPECT_EQ(const_iterator2.data, const_iterator1.data);
+
+    //         std::default_initializable
+    //         std::assignable_from<const T&>
+    dynamic_buffer_const_iterator<int> const_iterator3{};
+    EXPECT_EQ(const_iterator3.data, nullptr);
+    const_iterator3 = const_iterator2;
+    EXPECT_EQ(const_iterator3.data, const_iterator2.data);
+
+    //     std::equality_comparable
+    EXPECT_EQ(const_iterator3, const_iterator2);
+};
+
+TEST(DynamicBufferConstIterator, BidirectionalIterator)
+{
+    static_assert(std::bidirectional_iterator<dynamic_buffer_const_iterator<int>>);
+    dynamic_buffer<int> buffer = { 0, 1, 2, 3, 4, 5 };
+
+    // --i -> const_iterator&
+    dynamic_buffer_const_iterator<int> const_iterator1{ buffer.data + 3 };
+    const int* const_iterator1_data = const_iterator1.data;
+    dynamic_buffer_const_iterator<int>& const_iterator1_reference = --const_iterator1;
+    --const_iterator1_reference;
+    EXPECT_EQ(const_iterator1.data, const_iterator1_data - 2);
+    EXPECT_EQ(std::addressof(const_iterator1), std::addressof(const_iterator1_reference));
+    
+    // i-- -> const_iterator
+    dynamic_buffer_const_iterator<int> const_iterator2{ buffer.data + 1 };
+    EXPECT_EQ((const_iterator2--).data, buffer.data + 1);
+    EXPECT_EQ(const_iterator2.data, buffer.data);
+};
+
+TEST(DynamicBufferConstIterator, RandomAccessIterator)
+{
+    static_assert(std::random_access_iterator<dynamic_buffer_const_iterator<int>>);
+    dynamic_buffer<int> buffer = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+    // i <=> j -> strong_ordering
+    dynamic_buffer_const_iterator<int> const_iterator1{ buffer.data + 2 };
+    dynamic_buffer_const_iterator<int> const_iterator2{ buffer.data + 6 };
+    EXPECT_EQ(const_iterator1 <=> const_iterator2, std::strong_ordering::less);
+    EXPECT_EQ(const_iterator2 <=> const_iterator1, std::strong_ordering::greater);
+    EXPECT_EQ(const_iterator1 <=> dynamic_buffer_const_iterator<int>{}, std::strong_ordering::greater);
+
+    // i - j -> difference_type
+    EXPECT_EQ(const_iterator1 - const_iterator2, -4);
+    EXPECT_EQ(const_iterator2 - const_iterator1, 4);
+
+    // i += n -> const_iterator&
+    dynamic_buffer_const_iterator<int> const_iterator3{ buffer.data };
+    dynamic_buffer_const_iterator<int>& const_iterator3_reference = const_iterator3 += 3;
+    EXPECT_EQ(*const_iterator3, 3);
+    EXPECT_EQ(*const_iterator3_reference, *const_iterator3);
+    const_iterator3 += -3;
+    EXPECT_EQ(*const_iterator3, 0);
+
+    // i + n -> const_iterator
+    dynamic_buffer_const_iterator<int> const_iterator4{ buffer.data };
+    EXPECT_EQ(*(const_iterator4 + 3), 3);
+    EXPECT_EQ(*const_iterator4, 0);
+    EXPECT_EQ(*(3 + const_iterator4), *(const_iterator4 + 3));
+
+    // i -= n -> const_iterator&
+    dynamic_buffer_const_iterator<int> const_iterator5{ buffer.data + 3};
+    dynamic_buffer_const_iterator<int>& const_iterator5_reference = const_iterator5 -= 3;
+    EXPECT_EQ(*const_iterator5, 0);
+    EXPECT_EQ(*const_iterator5_reference, *const_iterator5);
+    const_iterator5 -= -3;
+    EXPECT_EQ(*const_iterator5, 3);
+
+    // i - n -> const_iterator
+    dynamic_buffer_const_iterator<int> const_iterator6{ buffer.data + 5 };
+    EXPECT_EQ(*(const_iterator6 - 3), 2);
+    EXPECT_EQ(*const_iterator6, 5);
+
+    // i[n] -> reference
+    dynamic_buffer_const_iterator<int> const_iterator7{ buffer.data };
+    for (std::size_t i = 0; i < buffer.size; ++i)
+    {
+        EXPECT_EQ(const_iterator7[i], i);
+    }
+};
+
+TEST(DynamicBufferConstIterator, ContiguousIterator)
+{
+    struct value
+    {
+        int x;
+    };
+
+    static_assert(std::contiguous_iterator<dynamic_buffer_const_iterator<value>>);
+    dynamic_buffer<value> buffer{ value{ 0 }, value{ 1 }, value{ 2 }, value{ 3 } };
+    dynamic_buffer_const_iterator<value> const_iterator{ buffer.data };
+    EXPECT_EQ(const_iterator->x, 0);
+    EXPECT_EQ((const_iterator + 2)->x, 2);
+    ++const_iterator;
+    EXPECT_EQ(const_iterator->x, 1);
+    EXPECT_EQ((const_iterator + 2)->x, 3);
+};
+
+TEST(DynamicBuffer, Iterators)
+{
+    static_assert(requires (dynamic_buffer<int>& A, const dynamic_buffer<int>& B)
+    {
+        { A.begin() }   -> std::same_as<dynamic_buffer_iterator<int>>;
+        { B.begin() }   -> std::same_as<dynamic_buffer_const_iterator<int>>;
+        { A.cbegin() }  -> std::same_as<dynamic_buffer_const_iterator<int>>;
+        { B.cbegin() }  -> std::same_as<dynamic_buffer_const_iterator<int>>;
+        { A.end() }     -> std::same_as<dynamic_buffer_iterator<int>>;
+        { B.end() }     -> std::same_as<dynamic_buffer_const_iterator<int>>;
+        { A.cend() }    -> std::same_as<dynamic_buffer_const_iterator<int>>;
+        { B.cend() }    -> std::same_as<dynamic_buffer_const_iterator<int>>;
+        { A.rbegin() }  -> std::same_as<dynamic_buffer_reverse_iterator<int>>;
+        { B.rbegin() }  -> std::same_as<dynamic_buffer_const_reverse_iterator<int>>;
+        { A.crbegin() } -> std::same_as<dynamic_buffer_const_reverse_iterator<int>>;
+        { B.crbegin() } -> std::same_as<dynamic_buffer_const_reverse_iterator<int>>;
+        { A.rend() }  -> std::same_as<dynamic_buffer_reverse_iterator<int>>;
+        { B.rend() }  -> std::same_as<dynamic_buffer_const_reverse_iterator<int>>;
+        { A.crend() } -> std::same_as<dynamic_buffer_const_reverse_iterator<int>>;
+        { B.crend() } -> std::same_as<dynamic_buffer_const_reverse_iterator<int>>;
+    });
+    dynamic_buffer<int> buffer1 = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+    std::size_t index1 = 0;
+    for (auto& value : buffer1)
+    {
+        static_assert(std::same_as<decltype(value), int&>);
+        EXPECT_EQ(value, index1);
+        ++index1;
+    }
+    index1 = 10;
+    for (auto itr = buffer1.rbegin(); itr != buffer1.rend(); ++itr)
+    {
+        static_assert(std::same_as<decltype(*itr), int&>);
+        EXPECT_EQ(*itr, index1);
+        --index1;
+    }
+
+    const dynamic_buffer<int> buffer2 = { buffer1 };
+    std::size_t index2 = 0;
+    for (const auto& value : buffer2)
+    {
+        static_assert(std::same_as<decltype(value), const int&>);
+        EXPECT_EQ(index2, value);
+        ++index2;
+    }
+    index2 = 10;
+    for (auto itr = buffer2.rbegin(); itr != buffer2.rend(); ++itr)
+    {
+        static_assert(std::same_as<decltype(*itr), const int&>);
+        EXPECT_EQ(*itr, index2);
+        --index2;
+    }
+};

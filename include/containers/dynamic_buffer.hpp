@@ -96,6 +96,105 @@ struct dynamic_buffer
         constexpr auto operator [](difference_type offset) const -> reference_type;
         constexpr auto operator ->() const -> pointer;
     };
+    struct const_iterator
+    {
+        using value_type = const T;
+        using reference_type = value_type&;
+        using pointer = value_type*;
+        using size_type = std::size_t;
+        using difference_type = std::ptrdiff_t;
+        using iterator_concept = std::contiguous_iterator_tag;
+        
+        pointer data = nullptr;
+
+        constexpr const_iterator() = default;
+        constexpr const_iterator(const const_iterator&) = default;
+        constexpr const_iterator(const_iterator&&) = default;
+        constexpr ~const_iterator() = default;
+        constexpr auto operator =(const const_iterator&) -> const_iterator& = default;
+        constexpr auto operator =(const_iterator&&) noexcept -> const_iterator& = default;
+        constexpr auto operator ==(const const_iterator&) const noexcept -> bool = default;
+        constexpr auto operator <=>(const const_iterator&) const noexcept -> std::strong_ordering = default;
+
+        constexpr friend auto swap(const_iterator& left, const_iterator& right) noexcept -> void
+        {
+            using std::swap;
+
+            swap(left.data, right.data);
+        };
+
+        constexpr const_iterator(pointer data);
+
+        constexpr auto operator ++() -> const_iterator&;
+        constexpr auto operator ++(int) -> const_iterator;
+        constexpr auto operator *() const -> reference_type;
+        constexpr auto operator --() -> const_iterator&;
+        constexpr auto operator --(int) -> const_iterator;
+        constexpr auto operator -(const const_iterator& other) const -> difference_type;
+        constexpr auto operator +=(difference_type offset) -> const_iterator&;
+        constexpr auto operator +(difference_type offset) const -> const_iterator;
+        constexpr friend auto operator +(difference_type offset, const const_iterator& iter) -> const_iterator
+        {
+            return iter + offset;
+        };
+        constexpr auto operator -=(difference_type offset) -> const_iterator&;
+        constexpr auto operator -(difference_type offset) const -> const_iterator;
+        constexpr auto operator [](difference_type offset) const -> reference_type;
+        constexpr auto operator ->() const -> pointer;
+    };
+
+    using reverse_iterator = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+    constexpr auto begin() noexcept -> iterator
+    {
+        return iterator{ data };
+    };
+    constexpr auto begin() const noexcept -> const_iterator
+    {
+        return const_iterator{ data };
+    };
+    constexpr auto cbegin() const noexcept -> const_iterator
+    {
+        return const_iterator{ data };
+    };
+    constexpr auto rbegin() noexcept -> reverse_iterator
+    {
+        return reverse_iterator{ end() };
+    };
+    constexpr auto rbegin() const noexcept -> const_reverse_iterator
+    {
+        return const_reverse_iterator{ cend() };
+    };
+    constexpr auto crbegin() const noexcept -> const_reverse_iterator
+    {
+        return const_reverse_iterator{ cend() };
+    };
+
+    constexpr auto end() noexcept -> iterator
+    {
+        return iterator{ data + size };
+    };
+    constexpr auto end() const noexcept -> const_iterator
+    {
+        return const_iterator{ data + size };
+    };
+    constexpr auto cend() const noexcept -> const_iterator
+    {
+        return const_iterator{ data + size };
+    };
+    constexpr auto rend() noexcept -> reverse_iterator
+    {
+        return reverse_iterator{ begin() };
+    };
+    constexpr auto rend() const noexcept -> const_reverse_iterator
+    {
+        return const_reverse_iterator{ begin() };
+    };
+    constexpr auto crend() const noexcept -> const_reverse_iterator
+    {
+        return const_reverse_iterator{ cbegin() };
+    };
 };
 
 template <typename T, typename A>
@@ -403,3 +502,97 @@ constexpr auto dynamic_buffer<T, A>::iterator::operator ->() const -> pointer
 {
     return data;
 };
+
+template <typename T, typename A = std::allocator<T>>
+using dynamic_buffer_const_iterator = typename dynamic_buffer<T, A>::const_iterator;
+
+template <typename T, typename A>
+constexpr dynamic_buffer<T, A>::const_iterator::const_iterator(pointer data) :
+    data{ data }
+{};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator ++() -> const_iterator&
+{
+    ++data;
+    return *this;
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator ++(int) -> const_iterator
+{
+    const_iterator out{ *this };
+    ++data;
+    return out;
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator *() const -> reference_type
+{
+    return *data;
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator --() -> const_iterator&
+{
+    --data;
+    return *this;
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator --(int) -> const_iterator
+{
+    const_iterator out{ *this };
+    --data;
+    return out;
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator -(const const_iterator& other) const -> difference_type
+{
+    return data - other.data;
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator +=(difference_type offset) -> const_iterator&
+{
+    data += offset;
+    return *this;
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator +(difference_type offset) const -> const_iterator
+{
+    return const_iterator{ data + offset };
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator -=(difference_type offset) -> const_iterator&
+{
+    data -= offset;
+    return *this;
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator -(difference_type offset) const -> const_iterator
+{
+    return const_iterator{ data - offset };
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator [](difference_type offset) const -> reference_type
+{
+    return data[offset];
+};
+
+template <typename T, typename A>
+constexpr auto dynamic_buffer<T, A>::const_iterator::operator ->() const -> pointer
+{
+    return data;
+};
+
+template <typename T, typename A = std::allocator<T>>
+using dynamic_buffer_reverse_iterator = typename dynamic_buffer<T, A>::reverse_iterator;
+
+template <typename T, typename A = std::allocator<T>>
+using dynamic_buffer_const_reverse_iterator = typename dynamic_buffer<T, A>::const_reverse_iterator;
